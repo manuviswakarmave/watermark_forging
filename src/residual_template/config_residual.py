@@ -285,6 +285,54 @@ EXPERIMENTS = [
     "mask_ceiling": 1.00,
     "sharpen_mode": "signed",
 },
+{
+    "name": "ensemble_pos_a016",
+    "denoiser": "ensemble",
+    "mask_denoiser": "gaussian",
+    "sign": 1.0,
+    "base_alpha": 0.16,
+    "min_alpha": 0.10,
+    "max_alpha": 0.30,
+    "mask_floor": 0.25,
+    "mask_ceiling": 1.00,
+    "sharpen_mode": "signed",
+},
+{
+    "name": "ensemble_pos_a017",
+    "denoiser": "ensemble",
+    "mask_denoiser": "gaussian",
+    "sign": 1.0,
+    "base_alpha": 0.17,
+    "min_alpha": 0.11,
+    "max_alpha": 0.32,
+    "mask_floor": 0.25,
+    "mask_ceiling": 1.00,
+    "sharpen_mode": "signed",
+},
+{
+    "name": "ensemble_pos_a018",
+    "denoiser": "ensemble",
+    "mask_denoiser": "gaussian",
+    "sign": 1.0,
+    "base_alpha": 0.18,
+    "min_alpha": 0.12,
+    "max_alpha": 0.34,
+    "mask_floor": 0.25,
+    "mask_ceiling": 1.00,
+    "sharpen_mode": "signed",
+},
+{
+    "name": "ensemble_pos_a014",
+    "denoiser": "ensemble",
+    "mask_denoiser": "gaussian",
+    "sign": 1.0,
+    "base_alpha": 0.14,
+    "min_alpha": 0.09,
+    "max_alpha": 0.26,
+    "mask_floor": 0.25,
+    "mask_ceiling": 1.00,
+    "sharpen_mode": "signed",
+},
 ]
 
 
@@ -292,7 +340,7 @@ EXPERIMENTS = [
 # Submission choice
 # =============================================================================
 
-SUBMISSION_EXPERIMENT_NAME = "ensemble_pos_a010"
+SUBMISSION_EXPERIMENT_NAME = "ensemble_pos_a016"
 
 RESIDUAL_EXPECTED_SUBMISSION_COUNT = EXPECTED_SUBMISSION_COUNT
 
