@@ -1,4 +1,3 @@
-# src/residual_template/create_zip_residual.py
 
 from pathlib import Path
 import sys

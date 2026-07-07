@@ -1,4 +1,3 @@
-# src/residual_template/main_residual.py
 
 from pathlib import Path
 import sys

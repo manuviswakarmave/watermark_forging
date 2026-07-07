@@ -1,4 +1,4 @@
-# src/residual_template/evaluate_quality_residual.py
+
 
 from pathlib import Path
 import sys

@@ -1,4 +1,4 @@
-# src/residual_template/template_extraction.py
+
 
 from pathlib import Path
 import sys
