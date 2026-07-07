@@ -1,4 +1,4 @@
-# src/residual_template/masking.py
+
 
 from pathlib import Path
 import sys

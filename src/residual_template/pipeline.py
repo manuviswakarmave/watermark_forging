@@ -1,4 +1,4 @@
-# src/residual_template/pipeline.py
+
 
 from pathlib import Path
 import sys

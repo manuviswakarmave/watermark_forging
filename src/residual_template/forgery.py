@@ -1,4 +1,3 @@
-# src/residual_template/forgery.py
 
 from pathlib import Path
 import sys

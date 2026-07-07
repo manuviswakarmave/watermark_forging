@@ -1,4 +1,3 @@
-# src/residual_template/image_ops.py
 
 from pathlib import Path
 import sys

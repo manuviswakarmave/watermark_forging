@@ -1,4 +1,4 @@
-# src/residual_template/denoisers.py
+
 
 from pathlib import Path
 import sys
@@ -27,29 +27,23 @@ from residual_template.config_residual import (
 )
 
 
-# =============================================================================
-# Basic conversion helpers
-# =============================================================================
+
 
 def to_uint8(image: np.ndarray) -> np.ndarray:
-    """
-    Convert float image in [0, 1] to uint8 image in [0, 255].
-    """
+
 
     return np.clip(image * 255.0, 0, 255).astype(np.uint8)
 
 
 def from_uint8(image: np.ndarray) -> np.ndarray:
-    """
-    Convert uint8 image in [0, 255] to float32 image in [0, 1].
-    """
+
 
     return image.astype(np.float32) / 255.0
 
 
-# =============================================================================
+
 # Gaussian denoising
-# =============================================================================
+
 
 def gaussian_denoise(
     image: np.ndarray,
@@ -70,9 +64,9 @@ def gaussian_denoise(
     return from_uint8(np.asarray(blurred))
 
 
-# =============================================================================
+
 # Bilateral denoising
-# =============================================================================
+
 
 def bilateral_denoise(
     image: np.ndarray,
@@ -98,9 +92,9 @@ def bilateral_denoise(
     return from_uint8(filtered)
 
 
-# =============================================================================
+
 # Non-local means denoising
-# =============================================================================
+
 
 def nlm_denoise(
     image: np.ndarray,
@@ -123,9 +117,7 @@ def nlm_denoise(
 
     image_u8 = to_uint8(image)
 
-    # OpenCV expects a 3-channel uint8 image.
-    # The channel order is not critical here because we only need a consistent
-    # denoised clean estimate.
+
     denoised = cv2.fastNlMeansDenoisingColored(
         image_u8,
         None,
@@ -193,9 +185,9 @@ def nlm_denoise_h9(image: np.ndarray) -> np.ndarray:
     )
 
 
-# =============================================================================
+
 # Median denoising
-# =============================================================================
+
 
 def median_denoise(
     image: np.ndarray,
@@ -218,9 +210,9 @@ def median_denoise(
     return from_uint8(filtered)
 
 
-# =============================================================================
+
 # Ensemble denoising
-# =============================================================================
+
 
 def ensemble_denoise(image: np.ndarray) -> np.ndarray:
     """
@@ -266,6 +258,62 @@ def ensemble_nlm_strong_denoise(image: np.ndarray) -> np.ndarray:
         axis=0,
     ).astype(np.float32)
 
+def nlm_denoise_h10(image: np.ndarray) -> np.ndarray:
+    return nlm_denoise(
+        image=image,
+        h=10,
+        h_color=10,
+        template_window_size=NLM_TEMPLATE_WINDOW_SIZE,
+        search_window_size=NLM_SEARCH_WINDOW_SIZE,
+    )
+
+
+def nlm_denoise_h11(image: np.ndarray) -> np.ndarray:
+    return nlm_denoise(
+        image=image,
+        h=11,
+        h_color=11,
+        template_window_size=NLM_TEMPLATE_WINDOW_SIZE,
+        search_window_size=NLM_SEARCH_WINDOW_SIZE,
+    )
+
+
+def nlm_denoise_h12(image: np.ndarray) -> np.ndarray:
+    return nlm_denoise(
+        image=image,
+        h=12,
+        h_color=12,
+        template_window_size=NLM_TEMPLATE_WINDOW_SIZE,
+        search_window_size=NLM_SEARCH_WINDOW_SIZE,
+    )
+def nlm_denoise_h13(image: np.ndarray) -> np.ndarray:
+    return nlm_denoise(
+        image=image,
+        h=13,
+        h_color=13,
+        template_window_size=NLM_TEMPLATE_WINDOW_SIZE,
+        search_window_size=NLM_SEARCH_WINDOW_SIZE,
+    )
+
+
+def nlm_denoise_h14(image: np.ndarray) -> np.ndarray:
+    return nlm_denoise(
+        image=image,
+        h=14,
+        h_color=14,
+        template_window_size=NLM_TEMPLATE_WINDOW_SIZE,
+        search_window_size=NLM_SEARCH_WINDOW_SIZE,
+    )
+
+
+def nlm_denoise_h15(image: np.ndarray) -> np.ndarray:
+    return nlm_denoise(
+        image=image,
+        h=15,
+        h_color=15,
+        template_window_size=NLM_TEMPLATE_WINDOW_SIZE,
+        search_window_size=NLM_SEARCH_WINDOW_SIZE,
+    )
 
 # =============================================================================
 # Denoiser dispatcher
@@ -323,6 +371,24 @@ def denoise_image(
     if method == "ensemble_nlm_strong":
         return ensemble_nlm_strong_denoise(image)
 
+    if method == "nlm_h10":
+        return nlm_denoise_h10(image)
+
+    if method == "nlm_h11":
+        return nlm_denoise_h11(image)
+
+    if method == "nlm_h12":
+        return nlm_denoise_h12(image)
+
+    if method == "nlm_h13":
+        return nlm_denoise_h13(image)
+
+    if method == "nlm_h14":
+        return nlm_denoise_h14(image)
+
+    if method == "nlm_h15":
+        return nlm_denoise_h15(image)
+
     raise ValueError(
         f"Unknown denoiser method: {method}. "
         "Use gaussian, bilateral, nlm, nlm_h3, nlm_h7, nlm_h9, "
@@ -330,9 +396,9 @@ def denoise_image(
     )
 
 
-# =============================================================================
+
 # Signed template smoothing
-# =============================================================================
+
 
 def signed_gaussian_blur(
     template: np.ndarray,
