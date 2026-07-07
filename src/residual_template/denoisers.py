@@ -27,25 +27,52 @@ from residual_template.config_residual import (
 )
 
 
+# =============================================================================
+# Basic conversion helpers
+# =============================================================================
+
 def to_uint8(image: np.ndarray) -> np.ndarray:
+    """
+    Convert float image in [0, 1] to uint8 image in [0, 255].
+    """
+
     return np.clip(image * 255.0, 0, 255).astype(np.uint8)
 
 
 def from_uint8(image: np.ndarray) -> np.ndarray:
+    """
+    Convert uint8 image in [0, 255] to float32 image in [0, 1].
+    """
+
     return image.astype(np.float32) / 255.0
 
 
-def gaussian_denoise(image: np.ndarray, radius: float = GAUSSIAN_RADIUS) -> np.ndarray:
+# =============================================================================
+# Gaussian denoising
+# =============================================================================
+
+def gaussian_denoise(
+    image: np.ndarray,
+    radius: float = GAUSSIAN_RADIUS,
+) -> np.ndarray:
     """
     Gaussian blur clean estimator.
-    This matches the style of the script that got your best baseline.
+
+    This matches the style of the original baseline code.
     """
 
     pil_image = Image.fromarray(to_uint8(image))
-    blurred = pil_image.filter(ImageFilter.GaussianBlur(radius=radius))
+
+    blurred = pil_image.filter(
+        ImageFilter.GaussianBlur(radius=radius)
+    )
 
     return from_uint8(np.asarray(blurred))
 
+
+# =============================================================================
+# Bilateral denoising
+# =============================================================================
 
 def bilateral_denoise(
     image: np.ndarray,
@@ -55,7 +82,8 @@ def bilateral_denoise(
 ) -> np.ndarray:
     """
     Bilateral clean estimator.
-    Smooths weak details while preserving strong edges.
+
+    It smooths weak/noise-like details while preserving stronger edges.
     """
 
     image_u8 = to_uint8(image)
@@ -70,6 +98,10 @@ def bilateral_denoise(
     return from_uint8(filtered)
 
 
+# =============================================================================
+# Non-local means denoising
+# =============================================================================
+
 def nlm_denoise(
     image: np.ndarray,
     h: float = NLM_H,
@@ -79,13 +111,21 @@ def nlm_denoise(
 ) -> np.ndarray:
     """
     Non-local means clean estimator.
-    Useful if the watermark behaves like weak noise.
+
+    Useful if the watermark behaves like weak image noise.
+
+    Default:
+        h = NLM_H
+        h_color = NLM_H_COLOR
+
+    In your config this is currently h=5, h_color=5.
     """
 
     image_u8 = to_uint8(image)
 
-    # OpenCV expects RGB/BGR-like 3-channel uint8; color ordering is not critical
-    # for denoising consistency here.
+    # OpenCV expects a 3-channel uint8 image.
+    # The channel order is not critical here because we only need a consistent
+    # denoised clean estimate.
     denoised = cv2.fastNlMeansDenoisingColored(
         image_u8,
         None,
@@ -97,6 +137,65 @@ def nlm_denoise(
 
     return from_uint8(denoised)
 
+
+def nlm_denoise_h3(image: np.ndarray) -> np.ndarray:
+    """
+    Weaker NLM denoising than default h=5.
+
+    This extracts a weaker residual:
+        residual = image - D_h3(image)
+
+    It may preserve better visual quality but may also reduce detector strength.
+    """
+
+    return nlm_denoise(
+        image=image,
+        h=3,
+        h_color=3,
+        template_window_size=NLM_TEMPLATE_WINDOW_SIZE,
+        search_window_size=NLM_SEARCH_WINDOW_SIZE,
+    )
+
+
+def nlm_denoise_h7(image: np.ndarray) -> np.ndarray:
+    """
+    Stronger NLM denoising than default h=5.
+
+    This can make:
+        residual = image - D_h7(image)
+
+    stronger than the default residual, which may improve watermark bit copying.
+    """
+
+    return nlm_denoise(
+        image=image,
+        h=7,
+        h_color=7,
+        template_window_size=NLM_TEMPLATE_WINDOW_SIZE,
+        search_window_size=NLM_SEARCH_WINDOW_SIZE,
+    )
+
+
+def nlm_denoise_h9(image: np.ndarray) -> np.ndarray:
+    """
+    Even stronger NLM denoising.
+
+    This may extract stronger watermark-like residuals, but it may also leak
+    more image content into the residual.
+    """
+
+    return nlm_denoise(
+        image=image,
+        h=9,
+        h_color=9,
+        template_window_size=NLM_TEMPLATE_WINDOW_SIZE,
+        search_window_size=NLM_SEARCH_WINDOW_SIZE,
+    )
+
+
+# =============================================================================
+# Median denoising
+# =============================================================================
 
 def median_denoise(
     image: np.ndarray,
@@ -111,15 +210,28 @@ def median_denoise(
 
     image_u8 = to_uint8(image)
 
-    filtered = cv2.medianBlur(image_u8, ksize=kernel_size)
+    filtered = cv2.medianBlur(
+        image_u8,
+        ksize=kernel_size,
+    )
 
     return from_uint8(filtered)
 
 
+# =============================================================================
+# Ensemble denoising
+# =============================================================================
+
 def ensemble_denoise(image: np.ndarray) -> np.ndarray:
     """
     Ensemble clean estimator.
-    Averages multiple clean estimates.
+
+    Averages multiple clean estimates:
+
+        gaussian
+        bilateral
+        nlm default h=5
+        median
     """
 
     estimates = [
@@ -129,12 +241,57 @@ def ensemble_denoise(image: np.ndarray) -> np.ndarray:
         median_denoise(image),
     ]
 
-    return np.mean(np.stack(estimates, axis=0), axis=0).astype(np.float32)
+    return np.mean(
+        np.stack(estimates, axis=0),
+        axis=0,
+    ).astype(np.float32)
 
 
-def denoise_image(image: np.ndarray, method: str) -> np.ndarray:
+def ensemble_nlm_strong_denoise(image: np.ndarray) -> np.ndarray:
+    """
+    Ensemble variant using stronger NLM.
+
+    This is optional for future experiments.
+    """
+
+    estimates = [
+        gaussian_denoise(image),
+        bilateral_denoise(image),
+        nlm_denoise_h7(image),
+        median_denoise(image),
+    ]
+
+    return np.mean(
+        np.stack(estimates, axis=0),
+        axis=0,
+    ).astype(np.float32)
+
+
+# =============================================================================
+# Denoiser dispatcher
+# =============================================================================
+
+def denoise_image(
+    image: np.ndarray,
+    method: str,
+) -> np.ndarray:
     """
     Dispatch denoising method.
+
+    Existing methods:
+        gaussian
+        bilateral
+        nlm
+        median
+        ensemble
+
+    New NLM variants:
+        nlm_h3
+        nlm_h7
+        nlm_h9
+
+    Optional ensemble variant:
+        ensemble_nlm_strong
     """
 
     method = method.lower().strip()
@@ -148,17 +305,34 @@ def denoise_image(image: np.ndarray, method: str) -> np.ndarray:
     if method == "nlm":
         return nlm_denoise(image)
 
+    if method == "nlm_h3":
+        return nlm_denoise_h3(image)
+
+    if method == "nlm_h7":
+        return nlm_denoise_h7(image)
+
+    if method == "nlm_h9":
+        return nlm_denoise_h9(image)
+
     if method == "median":
         return median_denoise(image)
 
     if method == "ensemble":
         return ensemble_denoise(image)
 
+    if method == "ensemble_nlm_strong":
+        return ensemble_nlm_strong_denoise(image)
+
     raise ValueError(
         f"Unknown denoiser method: {method}. "
-        "Use gaussian, bilateral, nlm, median, or ensemble."
+        "Use gaussian, bilateral, nlm, nlm_h3, nlm_h7, nlm_h9, "
+        "median, ensemble, or ensemble_nlm_strong."
     )
 
+
+# =============================================================================
+# Signed template smoothing
+# =============================================================================
 
 def signed_gaussian_blur(
     template: np.ndarray,
@@ -166,6 +340,12 @@ def signed_gaussian_blur(
 ) -> np.ndarray:
     """
     Gaussian blur for signed residual templates.
+
+    PIL cannot directly blur signed float residuals safely, so each channel is:
+
+        1. normalized to [0, 1]
+        2. blurred
+        3. mapped back to its original signed range
     """
 
     channels = []
@@ -183,7 +363,11 @@ def signed_gaussian_blur(
         normalized = (channel - ch_min) / (ch_max - ch_min)
 
         pil_image = Image.fromarray(to_uint8(normalized))
-        blurred = pil_image.filter(ImageFilter.GaussianBlur(radius=radius))
+
+        blurred = pil_image.filter(
+            ImageFilter.GaussianBlur(radius=radius)
+        )
+
         blurred = from_uint8(np.asarray(blurred))
 
         restored = blurred * (ch_max - ch_min) + ch_min
